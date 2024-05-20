@@ -35,11 +35,13 @@ if Chart_1:
     C_1_column = st.session_state.get('C_1_column', "Row Number")
     B_1 = st.session_state.get('B_1', 0.00000)
     D_1 = st.session_state.get('D_1', 0.00000)
-    A_1 = st.session_state.get('A_1', [])
+    A_1_option = st.session_state.get('A_1_option', None)
+    A_1 = st.session_state.get('A_1', 0.00000)
+    A_1_column = st.session_state.get('A_1_column', "Row Number")
+
     height = st.session_state.get('height', 400)
 
-
-    # Adding a new column "Number/Duration"
+    # Adding a new column "Row Number"
     if data is not None:
         data['Row Number'] = range(len(data))
         columns = data.columns.tolist()
@@ -52,7 +54,7 @@ if Chart_1:
         st.session_state.num_charts_n = num_charts_n
         st.write("")
         st.write("")
-        
+
         # Input fields for x-axis range for all charts
         x_min = data['Row Number'].min()
         x_max = data['Row Number'].max()
@@ -79,29 +81,17 @@ if Chart_1:
         st.write("")
 
         # Function to calculate upper and lower limits for specified columns
-        def calculate_limits(column_data, threshold, D_1, B_1, C_1_option, data):
+        def calculate_limits(column_data, threshold, D_1, B_1, C_1_value):
             lower_limit = upper_limit = np.nan
             if pd.api.types.is_numeric_dtype(column_data):
                 lower_limit = column_data.copy()
                 upper_limit = column_data.copy()
-                
-                if C_1_option == "User Input":
-                    C_1_value = C_1
-                elif C_1_option == "From Existing Variables":
-                    if "C_1_column" in data.columns:
-                        C_1_value = data["C_1_column"]
-                    else:
-                        st.error("Please select a column for C_1_column.")
-                        return np.nan, np.nan
-                else:
-                    st.error("Invalid option selected for C_1_option.")
-                    return np.nan, np.nan
-                
+
                 lower_limit[column_data <= threshold] -= D_1 + (B_1 * C_1_value / 100)
                 upper_limit[column_data <= threshold] += D_1 + (B_1 * C_1_value / 100)
                 upper_limit[column_data > threshold] += B_1 * C_1_value / 100
                 lower_limit[column_data > threshold] -= B_1 * C_1_value / 100
-                
+
             return lower_limit, upper_limit
 
         # Adding Tunnel. Check if X and Y values are provided and the chart type is not Bar
@@ -110,35 +100,34 @@ if Chart_1:
                 st.session_state.tunnel_1 = st.session_state.handle_tunnel_1
         tunnel_1 = st.checkbox("Add tunnel - lower & upper limit of variables", tunnel_1, on_change=handle_tunnel_1, key='handle_tunnel_1')
         st.session_state.tunnel_1 = tunnel_1
-            
+
         if tunnel_1:
-            col_notef_1, col_noteg_1 = st.columns([0.05,3.5])
+            col_notef_1, col_noteg_1 = st.columns([0.05, 3.5])
             with col_noteg_1:
                 st.write("     If A > threshold, tunnel = A ± (B% x C)")
                 st.write("     If A ≤ threshold, tunnel = A ± (B% x C) ± D")
 
-            col_noteh_1, col_notea_1, col_noteb_1, col_notec_1, col_noted_1, col_notee_1 = st.columns([0.08,1,1,1,1,1])
+            col_noteh_1, col_notea_1, col_noteb_1, col_notec_1, col_noted_1, col_notee_1 = st.columns([0.08, 1, 1, 1, 1, 1])
 
             with col_notea_1:
                 def handle_threshold_1():
-                        if st.session_state.handle_threshold_1:
-                            st.session_state.threshold_1 = st.session_state.handle_threshold_1
-                threshold_1 = st.number_input("Enter threshold value", min_value=0.00000, max_value=999999999.00000, value=threshold_1, on_change=handle_threshold_1, key='handle_threshold_1')
+                    if st.session_state.handle_threshold_1:
+                        st.session_state.threshold_1 = st.session_state.handle_threshold_1
+                threshold_1 = st.number_input("Enter threshold value", min_value=0.00000, max_value=999999999.00000, value=threshold_1, on_change=handle_threshold_1, key='handle_threshold_1', format="%.5f")
                 st.session_state.threshold_1 = threshold_1
 
             with col_noteb_1:
                 def handle_C_1_option():
-                        if st.session_state.handle_C_1_option:
-                            st.session_state.C_1_option = st.session_state.handle_C_1_option
+                    if st.session_state.handle_C_1_option:
+                        st.session_state.C_1_option = st.session_state.handle_C_1_option
                 C_1_option = st.selectbox("Select option for C:", ["User Input", "From Existing Variables"], index=0 if C_1_option == "User Input" else 1, on_change=handle_C_1_option, key='handle_C_1_option')
                 st.session_state.C_1_option = C_1_option
                 if C_1_option == "User Input":
-                    C_1 = st.number_input("Enter C", min_value=0.00000, max_value=999999999.00000, value=C_1)
+                    C_1 = st.number_input("Enter C", min_value=0.00000, max_value=999999999.00000, value=C_1, format="%.5f")
                     st.session_state.C_1 = C_1
 
                 elif C_1_option == "From Existing Variables":
-                    #C_1_column = st.session_state.get('C_1_column', "Row Number")
-                    numeric_columns = list(data.select_dtypes(include=np.number).columns)  
+                    numeric_columns = list(data.select_dtypes(include=np.number).columns)
                     default_index = numeric_columns.index(C_1_column)
                     def handle_C_1_column():
                         if st.session_state.handle_C_1_column:
@@ -149,37 +138,74 @@ if Chart_1:
 
             with col_notec_1:
                 def handle_B_1():
-                        if st.session_state.handle_B_1:
-                            st.session_state.B_1 = st.session_state.handle_B_1
-                B_1 = st.number_input("Enter B in %", min_value=0.00000, max_value=100.00000, value=B_1, on_change=handle_B_1, key='handle_B_1')
+                    if st.session_state.handle_B_1:
+                        st.session_state.B_1 = st.session_state.handle_B_1
+                B_1 = st.number_input("Enter B in %", min_value=0.00000, max_value=100.00000, value=B_1, on_change=handle_B_1, key='handle_B_1', format="%.5f")
                 st.session_state.B_1 = B_1
 
             with col_noted_1:
                 def handle_D_1():
-                        if st.session_state.handle_D_1:
-                            st.session_state.D_1 = st.session_state.handle_D_1
-                D_1 = st.number_input("Enter D", min_value=0.00000, max_value=999999999.00000, value=D_1, on_change=handle_D_1, key='handle_D_1')
+                    if st.session_state.handle_D_1:
+                        st.session_state.D_1 = st.session_state.handle_D_1
+                D_1 = st.number_input("Enter D", min_value=0.00000, max_value=999999999.00000, value=D_1, on_change=handle_D_1, key='handle_D_1', format="%.5f")
                 st.session_state.D_1 = D_1
-                
+
             with col_notee_1:
-                def handle_A_1():
-                    if st.session_state.handle_A_1:
-                        st.session_state.A_1 = st.session_state.handle_A_1
-                A_1 = st.multiselect('Select A: variables to calculate limits for:', data.columns, A_1, on_change=handle_A_1, key='handle_A_1')    
-                st.session_state.A_1 = A_1
+                def handle_A_1_option():
+                    if st.session_state.handle_A_1_option:
+                        st.session_state.A_1_option = st.session_state.handle_A_1_option
+                A_1_option = st.selectbox("Select option for A:", ["User Input", "From Existing Variables"], index=0 if A_1_option == "User Input" else 1, on_change=handle_A_1_option, key='handle_A_1_option')
+                st.session_state.A_1_option = A_1_option
+                if A_1_option == "User Input":
+                    A_1 = st.number_input("Enter A", min_value=0.00000, max_value=999999999.00000, value=A_1, format="%.5f")
+                    st.session_state.A_1 = A_1
+
+                    def handle_upper_limit_name():
+                        if st.session_state.handle_upper_limit_name:
+                            st.session_state.upper_limit_name = st.session_state.handle_upper_limit_name
+                    upper_limit_name = st.text_input("Enter name for upper limit column", value="upper_limit", on_change=handle_upper_limit_name, key='handle_upper_limit_name')
+                    st.session_state.upper_limit_name = upper_limit_name
+
+                    def handle_lower_limit_name():
+                        if st.session_state.handle_lower_limit_name:
+                            st.session_state.lower_limit_name = st.session_state.handle_lower_limit_name
+                    lower_limit_name = st.text_input("Enter name for lower limit column", value="lower_limit", on_change=handle_lower_limit_name, key='handle_lower_limit_name')
+                    st.session_state.lower_limit_name = lower_limit_name
+
+                elif A_1_option == "From Existing Variables":
+                    numeric_columns = list(data.select_dtypes(include=np.number).columns)
+                    default_index = numeric_columns.index(A_1_column)
+                    def handle_A_1_column():
+                        if st.session_state.handle_A_1_column:
+                            st.session_state.A_1_column = st.session_state.handle_A_1_column
+                    A_1_column = st.selectbox("Select variables for A:", numeric_columns, index=default_index, on_change=handle_A_1_column, key='handle_A_1_column')
+                    st.session_state['A_1_column'] = A_1_column
+                    data["A_1_column"] = data[A_1_column]
 
             st.write("")
             st.write("")
-                        
-            for column in A_1:
-                # Check if column exists in data
-                if column in data.columns:
-                    # Calculate upper and lower limits for the selected column
-                    lower_limit, upper_limit = calculate_limits(data[column], threshold_1, D_1, B_1, C_1_option, data)
-                    # Add upper and lower limits as new columns
-                    data[f"{column}_lower_limit"] = lower_limit
-                    data[f"{column}_upper_limit"] = upper_limit
 
+            if A_1_option == "User Input":
+                A_1_value = A_1
+                upper_limit_name = st.session_state.upper_limit_name
+                lower_limit_name = st.session_state.lower_limit_name
+                # Create columns filled with the A_1_value for calculation purposes
+                data['A_1_value'] = A_1_value
+                column_to_process = 'A_1_value'
+            else:
+                A_1_value = data["A_1_column"]
+                upper_limit_name = f"{A_1_column}_upper_limit"
+                lower_limit_name = f"{A_1_column}_lower_limit"
+                column_to_process = A_1_column
+
+            if C_1_option == "User Input":
+                C_1_value = C_1
+            else:
+                C_1_value = data["C_1_column"]
+
+            lower_limit, upper_limit = calculate_limits(data[column_to_process], threshold_1, D_1, B_1, C_1_value)
+            data[lower_limit_name] = lower_limit
+            data[upper_limit_name] = upper_limit
 
 
         for i in range(num_charts_n):
